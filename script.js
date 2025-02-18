@@ -94,164 +94,164 @@ is_user_logged_in()
     //Handle loading spinner
     document.getElementById("loading").classList.add("hide");
     document.getElementById("content").classList.remove("hide");
-    let paypal_buttons = paypal.Buttons({ // https://developer.paypal.com/sdk/js/reference
-        onClick: (data) => { // https://developer.paypal.com/sdk/js/reference/#link-oninitonclick
-            //Custom JS here
-        },
-        style: { //https://developer.paypal.com/sdk/js/reference/#link-style
-            shape: 'rect',
-            color: 'gold',
-            layout: 'vertical',
-            label: 'paypal'
-        },
+    // let paypal_buttons = paypal.Buttons({ // https://developer.paypal.com/sdk/js/reference
+    //     onClick: (data) => { // https://developer.paypal.com/sdk/js/reference/#link-oninitonclick
+    //         //Custom JS here
+    //     },
+    //     style: { //https://developer.paypal.com/sdk/js/reference/#link-style
+    //         shape: 'rect',
+    //         color: 'gold',
+    //         layout: 'vertical',
+    //         label: 'paypal'
+    //     },
 
-        createOrder: function(data, actions) { //https://developer.paypal.com/docs/api/orders/v2/#orders_create
-            return fetch("/create_order", {
-                method: "post", headers: { "Content-Type": "application/json; charset=utf-8" },
-                body: JSON.stringify({ "intent": intent })
-            })
-            .then((response) => response.json())
-            .then((order) => { return order.id; });
-        },
+    //     createOrder: function(data, actions) { //https://developer.paypal.com/docs/api/orders/v2/#orders_create
+    //         return fetch("/create_order", {
+    //             method: "post", headers: { "Content-Type": "application/json; charset=utf-8" },
+    //             body: JSON.stringify({ "intent": intent })
+    //         })
+    //         .then((response) => response.json())
+    //         .then((order) => { return order.id; });
+    //     },
 
-        onApprove: function(data, actions) {
-            order_id = data.orderID;
-            console.log(data);
-            return fetch("/complete_order", {
-                method: "post", headers: { "Content-Type": "application/json; charset=utf-8" },
-                body: JSON.stringify({
-                    "intent": intent,
-                    "order_id": order_id
-                })
-            })
-            .then((response) => response.json())
-            .then((order_details) => {
-              let intent_object = intent === "authorize" ? "authorizations" : "captures";
-              if (order_details.purchase_units[0].payments[intent_object][0].status === "COMPLETED") {
-                display_success_message({"order_details": order_details, "paypal_buttons": paypal_buttons});
-              } else {
-                console.log(order_details);
-                throw error("payment was not completed, please view console for more information");
-              }
-             })
-             .catch((error) => {
-                console.log(error);
-                display_error_alert()
-             });
-        },
+    //     onApprove: function(data, actions) {
+    //         order_id = data.orderID;
+    //         console.log(data);
+    //         return fetch("/complete_order", {
+    //             method: "post", headers: { "Content-Type": "application/json; charset=utf-8" },
+    //             body: JSON.stringify({
+    //                 "intent": intent,
+    //                 "order_id": order_id
+    //             })
+    //         })
+    //         .then((response) => response.json())
+    //         .then((order_details) => {
+    //           let intent_object = intent === "authorize" ? "authorizations" : "captures";
+    //           if (order_details.purchase_units[0].payments[intent_object][0].status === "COMPLETED") {
+    //             display_success_message({"order_details": order_details, "paypal_buttons": paypal_buttons});
+    //           } else {
+    //             console.log(order_details);
+    //             throw error("payment was not completed, please view console for more information");
+    //           }
+    //          })
+    //          .catch((error) => {
+    //             console.log(error);
+    //             display_error_alert()
+    //          });
+    //     },
 
-        onCancel: function (data) {
-            document.getElementById("alerts").innerHTML = `<div class="ms-alert ms-action2 ms-small"><span class="ms-close"></span><p>Order cancelled!</p>  </div>`;
-        },
+    //     onCancel: function (data) {
+    //         document.getElementById("alerts").innerHTML = `<div class="ms-alert ms-action2 ms-small"><span class="ms-close"></span><p>Order cancelled!</p>  </div>`;
+    //     },
 
-        onError: function(err) {
-            console.log(err);
-        }
-    });
-    paypal_buttons.render('#payment_options');
+    //     onError: function(err) {
+    //         console.log(err);
+    //     }
+    // });
+    // paypal_buttons.render('#payment_options');
     //Hosted Fields
-    if (paypal.HostedFields.isEligible()) {
-        // Renders card fields
-        paypal_hosted_fields = paypal.HostedFields.render({
-          // Call your server to set up the transaction
-          createOrder: () => {
-            return fetch("/create_order", {
-                method: "post", headers: { "Content-Type": "application/json; charset=utf-8" },
-                body: JSON.stringify({ "intent": intent })
-            })
-            .then((response) => response.json())
-            .then((order) => { order_id = order.id; return order.id; });
-          },
-          styles: {
-            '.valid': {
-              color: 'green'
-            },
-            '.invalid': {
-              color: 'red'
-            },
-            'input': {
-                'font-size': '16pt',
-                'color': '#ffffff'
-            },
-          },
-          fields: {
-            number: {
-              selector: "#card-number",
-              placeholder: "4111 1111 1111 1111"
-            },
-            cvv: {
-              selector: "#cvv",
-              placeholder: "123"
-            },
-            expirationDate: {
-              selector: "#expiration-date",
-              placeholder: "MM/YY"
-            }
-          }
-        }).then((card_fields) => {
-         document.querySelector("#card-form").addEventListener("submit", (event) => {
-            event.preventDefault();
-            document.querySelector("#card-form").querySelector("input[type='submit']").setAttribute("disabled", "");
-            document.querySelector("#card-form").querySelector("input[type='submit']").value = "Loading...";
-            card_fields
-              .submit(
-                //Customer Data BEGIN
-                //This wasn't part of the video guide originally, but I've included it here
-                //So you can reference how you could send customer data, which may
-                //be a requirement of your project to pass this info to card issuers
-                {
-                  // Cardholder's first and last name
-                  cardholderName: "Raúl Uriarte, Jr.",
-                  // Billing Address
-                  billingAddress: {
-                    // Street address, line 1
-                    streetAddress: "123 Springfield Rd",
-                    // Street address, line 2 (Ex: Unit, Apartment, etc.)
-                    extendedAddress: "",
-                    // State
-                    region: "AZ",
-                    // City
-                    locality: "CHANDLER",
-                    // Postal Code
-                    postalCode: "85224",
-                    // Country Code
-                    countryCodeAlpha2: "US",
-                  },
-                }
-                //Customer Data END
-              )
-              .then(() => {
-                return fetch("/complete_order", {
-                    method: "post", headers: { "Content-Type": "application/json; charset=utf-8" },
-                    body: JSON.stringify({
-                        "intent": intent,
-                        "order_id": order_id,
-                        "email": document.getElementById("email").value
-                    })
-                })
-                .then((response) => response.json())
-                .then((order_details) => {
-                  let intent_object = intent === "authorize" ? "authorizations" : "captures";
-                  if (order_details.purchase_units[0].payments[intent_object][0].status === "COMPLETED") {
-                    display_success_message({"order_details": order_details, "paypal_buttons": paypal_buttons});
-                  } else {
-                    console.log(order_details);
-                    throw error("payment was not completed, please view console for more information");
-                  }
-                 })
-                 .catch((error) => {
-                    console.log(error);
-                    display_error_alert();
-                 });
-              })
-              .catch((err) => {
-                console.log(err);
-                reset_purchase_button();
-                display_error_alert();
-              });
-          });
-        });
-      }
+    // if (paypal.HostedFields.isEligible()) {
+    //     // Renders card fields
+    //     paypal_hosted_fields = paypal.HostedFields.render({
+    //       // Call your server to set up the transaction
+    //       createOrder: () => {
+    //         return fetch("/create_order", {
+    //             method: "post", headers: { "Content-Type": "application/json; charset=utf-8" },
+    //             body: JSON.stringify({ "intent": intent })
+    //         })
+    //         .then((response) => response.json())
+    //         .then((order) => { order_id = order.id; return order.id; });
+    //       },
+    //       styles: {
+    //         '.valid': {
+    //           color: 'green'
+    //         },
+    //         '.invalid': {
+    //           color: 'red'
+    //         },
+    //         'input': {
+    //             'font-size': '16pt',
+    //             'color': '#ffffff'
+    //         },
+    //       },
+    //       fields: {
+    //         number: {
+    //           selector: "#card-number",
+    //           placeholder: "4111 1111 1111 1111"
+    //         },
+    //         cvv: {
+    //           selector: "#cvv",
+    //           placeholder: "123"
+    //         },
+    //         expirationDate: {
+    //           selector: "#expiration-date",
+    //           placeholder: "MM/YY"
+    //         }
+    //       }
+    //     }).then((card_fields) => {
+    //      document.querySelector("#card-form").addEventListener("submit", (event) => {
+    //         event.preventDefault();
+    //         document.querySelector("#card-form").querySelector("input[type='submit']").setAttribute("disabled", "");
+    //         document.querySelector("#card-form").querySelector("input[type='submit']").value = "Loading...";
+    //         card_fields
+    //           .submit(
+    //             //Customer Data BEGIN
+    //             //This wasn't part of the video guide originally, but I've included it here
+    //             //So you can reference how you could send customer data, which may
+    //             //be a requirement of your project to pass this info to card issuers
+    //             {
+    //               // Cardholder's first and last name
+    //               cardholderName: "Raúl Uriarte, Jr.",
+    //               // Billing Address
+    //               billingAddress: {
+    //                 // Street address, line 1
+    //                 streetAddress: "123 Springfield Rd",
+    //                 // Street address, line 2 (Ex: Unit, Apartment, etc.)
+    //                 extendedAddress: "",
+    //                 // State
+    //                 region: "AZ",
+    //                 // City
+    //                 locality: "CHANDLER",
+    //                 // Postal Code
+    //                 postalCode: "85224",
+    //                 // Country Code
+    //                 countryCodeAlpha2: "US",
+    //               },
+    //             }
+    //             //Customer Data END
+    //           )
+    //           .then(() => {
+    //             return fetch("/complete_order", {
+    //                 method: "post", headers: { "Content-Type": "application/json; charset=utf-8" },
+    //                 body: JSON.stringify({
+    //                     "intent": intent,
+    //                     "order_id": order_id,
+    //                     "email": document.getElementById("email").value
+    //                 })
+    //             })
+    //             .then((response) => response.json())
+    //             .then((order_details) => {
+    //               let intent_object = intent === "authorize" ? "authorizations" : "captures";
+    //               if (order_details.purchase_units[0].payments[intent_object][0].status === "COMPLETED") {
+    //                 display_success_message({"order_details": order_details, "paypal_buttons": paypal_buttons});
+    //               } else {
+    //                 console.log(order_details);
+    //                 throw error("payment was not completed, please view console for more information");
+    //               }
+    //              })
+    //              .catch((error) => {
+    //                 console.log(error);
+    //                 display_error_alert();
+    //              });
+    //           })
+    //           .catch((err) => {
+    //             console.log(err);
+    //             reset_purchase_button();
+    //             display_error_alert();
+    //           });
+    //       });
+    //     });
+    //   }
       //ApplePay Code
       let check_applepay = async () => {
         return new Promise((resolve, reject) => {
